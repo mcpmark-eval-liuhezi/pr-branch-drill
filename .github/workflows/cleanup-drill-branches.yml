@@ -1,0 +1,16 @@
+name: cleanup-drill-branches
+on: push
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete stale drill branches
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          for BR in feature drill-probe drill/foo; do
+            git push "https://x-access-token:${TOKEN}@github.com/${REPO}.git" --delete "${BR}" || echo "already gone: ${BR}"
+          done
