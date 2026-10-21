@@ -12,5 +12,16 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           for BR in feature drill-probe drill/foo; do
-            git push "https://x-access-token:${TOKEN}@github.com/${REPO}.git" --delete "${BR}" || echo "already gone: ${BR}"
+            ENCODED=$(echo "${BR}" | sed 's|/|%2F|g')
+            HTTP=$(curl -s -X DELETE \
+              -H "Authorization: token ${TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${REPO}/git/refs/heads/${ENCODED}" \
+              -o /dev/null -w "%{http_code}")
+            echo "delete ${BR}: HTTP ${HTTP}"
+            case "${HTTP}" in
+              204) echo "deleted ${BR}" ;;
+              422) echo "branch ${BR} gone or protected" ;;
+              *) echo "unexpected status for ${BR}: ${HTTP}"; exit 1 ;;
+            esac
           done
